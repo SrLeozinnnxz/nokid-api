@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 // ==========================================
-// CONEXÃO COM O POSTGRESQL
+// CONEXAO COM O POSTGRESQL
 // ==========================================
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -22,7 +22,6 @@ const pool = new Pool({
   connectionTimeoutMillis: 10000
 });
 
-// Registra erros inesperados de conexão.
 pool.on('error', (err) => {
   console.error(
     'Erro inesperado no PostgreSQL:',
@@ -42,19 +41,17 @@ app.get('/ping', (req, res) => {
 });
 
 // ==========================================
-// TESTE DE CONEXÃO COM O BANCO
+// TESTE DE CONEXAO COM O BANCO
 // ==========================================
 
 app.get('/db-check', async (req, res) => {
   if (!databaseUrl) {
-    console.error(
-      'DATABASE_URL não está configurada no ambiente.'
-    );
+    console.error('DATABASE_URL nao esta configurada.');
 
     return res.status(500).json({
       status: 'error',
       database: 'unavailable',
-      message: 'DATABASE_URL não configurada no Render.'
+      message: 'DATABASE_URL nao configurada no Render.'
     });
   }
 
@@ -75,8 +72,7 @@ app.get('/db-check', async (req, res) => {
       time: result.rows[0].time
     });
   } catch (err) {
-    // Mostra a causa nos logs sem expor credenciais ao navegador.
-    console.error('Falha na conexão PostgreSQL:', {
+    console.error('Falha na conexao PostgreSQL:', {
       name: err.name,
       message: err.message,
       code: err.code,
@@ -88,7 +84,7 @@ app.get('/db-check', async (req, res) => {
     return res.status(500).json({
       status: 'error',
       database: 'unavailable',
-      message: 'Não foi possível conectar ao PostgreSQL. Consulte os logs do Render.'
+      message: 'Falha na conexao. Consulte os logs do Render.'
     });
   } finally {
     if (client) {
@@ -98,7 +94,7 @@ app.get('/db-check', async (req, res) => {
 });
 
 // ==========================================
-// STATUS DO SERVIDOR NOKID ROLEPLAY
+// STATUS DO NOKID ROLEPLAY
 // ==========================================
 
 app.get('/status', (req, res) => {
@@ -107,7 +103,7 @@ app.get('/status', (req, res) => {
     players: 128,
     maxPlayers: 500,
     ping: 28,
-    region: 'SA - São Paulo',
+    region: 'SA - Sao Paulo',
     statusText: 'NOKID ROLEPLAY'
   });
 });
@@ -135,7 +131,7 @@ app.post('/serverGetConfig', (req, res) => {
   res.json({
     ip: '127.0.0.1',
     porta: 7777,
-    mensagem: 'Configuração carregada'
+    mensagem: 'Configuracao carregada'
   });
 });
 
@@ -147,18 +143,15 @@ app.post('/serverGetModsManifest', (req, res) => {
 });
 
 // ==========================================
-// INICIALIZAÇÃO DA API
+// INICIALIZACAO DA API
 // ==========================================
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
+  console.log('Servidor NOKID API rodando na porta ' + PORT);
   console.log(
-    `Servidor NOKID API rodando na porta ${PORT}`
-  );
-
-  console.log(
-    'DATABASE_URL configurada:',
+    'DATABASE_URL configurada: ' +
     Boolean(process.env.DATABASE_URL)
   );
 });
