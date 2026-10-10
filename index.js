@@ -1,3 +1,4 @@
+```javascript
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -8,13 +9,25 @@ app.use(cors());
 app.use(express.json());
 
 // ==========================================
-// CONEXÃO COM O BANCO DE DADOS POSTGRESQL
+// CONEXÃO COM O POSTGRESQL
 // ==========================================
 
+const databaseUrl = process.env.DATABASE_URL;
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  connectionTimeoutMillis: 5000
+  connectionString: databaseUrl,
+  ssl: databaseUrl
+    ? { rejectUnauthorized: false }
+    : false,
+  connectionTimeoutMillis: 10000
+});
+
+// Registra erros inesperados de conexão.
+pool.on('error', (err) => {
+  console.error(
+    'Erro inesperado no PostgreSQL:',
+    err.message || err.code || String(err)
+  );
 });
 
 // ==========================================
@@ -29,28 +42,58 @@ app.get('/ping', (req, res) => {
 });
 
 // ==========================================
-// TESTE DE CONEXÃO COM O POSTGRESQL
+// TESTE DE CONEXÃO COM O BANCO
 // ==========================================
 
 app.get('/db-check', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT NOW() AS time');
+  if (!databaseUrl) {
+    console.error(
+      'DATABASE_URL não está configurada no ambiente.'
+    );
 
-    res.json({
+    return res.status(500).json({
+      status: 'error',
+      database: 'unavailable',
+      message: 'DATABASE_URL não configurada no Render.'
+    });
+  }
+
+  let client;
+
+  try {
+    client = await pool.connect();
+
+    const result = await client.query(
+      'SELECT NOW() AS time'
+    );
+
+    console.log('PostgreSQL conectado com sucesso.');
+
+    return res.json({
       status: 'ok',
       database: 'connected',
       time: result.rows[0].time
     });
   } catch (err) {
-    console.error(
-      'Erro ao conectar ao PostgreSQL:',
-      err.message
-    );
-
-    res.status(500).json({
-      status: 'error',
-      database: 'unavailable'
+    // Mostra a causa nos logs sem expor credenciais ao navegador.
+    console.error('Falha na conexão PostgreSQL:', {
+      name: err.name,
+      message: err.message,
+      code: err.code,
+      severity: err.severity,
+      detail: err.detail,
+      hint: err.hint
     });
+
+    return res.status(500).json({
+      status: 'error',
+      database: 'unavailable',
+      message: 'Não foi possível conectar ao PostgreSQL. Consulte os logs do Render.'
+    });
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 });
 
@@ -75,8 +118,6 @@ app.get('/status', (req, res) => {
 // ==========================================
 
 app.post('/serverValidatePlayer', (req, res) => {
-  // A validação real do jogador será implementada
-  // posteriormente usando o banco de dados.
   res.json({
     permitido: true,
     mensagem: 'Jogador validado com sucesso!'
@@ -84,7 +125,6 @@ app.post('/serverValidatePlayer', (req, res) => {
 });
 
 app.post('/serverRegisterPlayer', (req, res) => {
-  // O cadastro real será implementado futuramente.
   res.json({
     permitido: true,
     mensagem: 'Jogador registrado com sucesso!'
@@ -113,5 +153,13 @@ app.post('/serverGetModsManifest', (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Servidor NOKID API rodando na porta ${PORT}`);
+  console.log(
+    `Servidor NOKID API rodando na porta ${PORT}`
+  );
+
+  console.log(
+    'DATABASE_URL configurada:',
+    Boolean(process.env.DATABASE_URL)
+  );
 });
+```
